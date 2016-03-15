@@ -231,9 +231,6 @@ fi
 sniff(){
 xterm -e airodump-ng --bssid $bssid -c $channel,$channel -w "Networks/$essid ($split_bssid)" $iface_str &
 }
-sniff_1(){
-xterm -e airodump-ng --bssid $bssid -c $channel,$channel -w "Networks/$essid ($split_bssid)" $iface_str &
-}
 
 calc(){
 num=`ls -1 Networks/"$essid ($split_bssid)"-*.cap | wc -l`
@@ -306,7 +303,7 @@ echo -e $green "              Creating Honeypot..."
 echo -e $magenta "══════════════════════════════════════════════════"
 echo -e $yellow""
 airmon-ng start $iface_str > /dev/null 2>&1
-sniff_1 &
+sniff &
 csv
 handshake_honeypot
 }
@@ -317,7 +314,7 @@ echo -e $green "              Creating Honeypot..."
 echo -e $magenta "══════════════════════════════════════════════════"
 echo -e $yellow""
 airmon-ng start $iface_str > /dev/null 2>&1
-sniff_1 &
+sniff &
 csv
 handshake_aireplay
 }
@@ -328,7 +325,7 @@ echo -e $green "              Creating Honeypot..."
 echo -e $magenta "══════════════════════════════════════════════════"
 echo -e $yellow""
 airmon-ng start $iface_str > /dev/null 2>&1
-sniff_1 &
+sniff &
 csv
 handshake_mdk3
 }
